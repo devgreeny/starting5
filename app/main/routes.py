@@ -167,6 +167,8 @@ def home():
 @bp.route("/quiz", methods=["GET", "POST"])
 def show_quiz():
     conf_map, colleges = load_confs()
+    quiz_key = None
+    is_bonus_quiz = False
 
     if request.method == "POST":
         # (Unchanged) read quiz_json_path from the form and grade it
@@ -352,6 +354,7 @@ def show_quiz():
             return "❌ No bonus quiz available.", 500
         quiz_filename = random.choice(bonus_files)
         quiz_path = os.path.join(BONUS_DIR, quiz_filename)
+        is_bonus_quiz = True
     else:
         # Ensure current_quiz folder exists (if not, create it)
         os.makedirs(CURRENT_DIR, exist_ok=True)
@@ -364,6 +367,9 @@ def show_quiz():
         # We assume only ONE file should be there at a time
         quiz_filename = current_files[0]
         quiz_path = os.path.join(CURRENT_DIR, quiz_filename)
+
+    quiz_key = os.path.basename(quiz_path)
+
 
     with open(quiz_path, encoding="utf-8") as f:
         data = json.load(f)
@@ -390,7 +396,7 @@ def show_quiz():
                 else:
                     break
 
-    leaderboard = get_leaderboard(os.path.basename(quiz_path))
+    leaderboard = get_leaderboard(quiz_key)
     show_leaderboard = False
     
     return render_template(
@@ -403,7 +409,7 @@ def show_quiz():
         score           = None,
         max_points      = None,
         quiz_json_path  = quiz_path,
-        quiz_id        = os.path.basename(quiz_path),
+        quiz_id        = quiz_key,
         streak         = streak,
         share_message  = None,
         performance_text = None,
