@@ -1,5 +1,5 @@
 import os, json, random
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response, session
 from flask_login import current_user, login_required
 from datetime import datetime, timedelta
 from app.models import db, GuessLog, ScoreLog
@@ -11,6 +11,7 @@ bp = Blueprint("main", __name__)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 QUIZ_DIR     = os.path.join(PROJECT_ROOT, "app", "static", "preloaded_quizzes")
 CURRENT_DIR  = os.path.join(PROJECT_ROOT, "app", "static", "current_quiz")
+BONUS_DIR    = os.path.join(PROJECT_ROOT, "app", "static", "bonus_quiz")
 CBB_CSV      = os.path.join(PROJECT_ROOT, "app", "static", "json", "cbb25.csv")
 
 
@@ -121,26 +122,42 @@ def performance_text(score, max_points):
     else:
         return "\U0001F9CA Cold start – better luck tomorrow!"
 
-def get_leaderboard(quiz_id, limit=10):
-    """Return top users for a quiz ordered by score and time."""
+def get_leaderboard(quiz_id):
+    """Return all results for today, labeling guests sequentially."""
     from app.models import User  # local import to avoid circular deps
+
+    today = datetime.utcnow().date()
+
     q = (
-        db.session.query(User.username, ScoreLog.score, ScoreLog.max_points, ScoreLog.time_taken)
-        .join(User, User.id == ScoreLog.user_id)
-        .filter(ScoreLog.quiz_id == quiz_id)
+        db.session.query(
+            User.username,
+            ScoreLog.score,
+            ScoreLog.max_points,
+            ScoreLog.time_taken,
+            ScoreLog.user_id,
+        )
+        .outerjoin(User, User.id == ScoreLog.user_id)
+        .filter(ScoreLog.quiz_id == quiz_id, func.date(ScoreLog.timestamp) == today)
         .order_by(ScoreLog.score.desc(), ScoreLog.time_taken.asc())
-        .limit(limit)
         .all()
     )
-    return [
-        {
-            "username": r.username,
-            "score": round(r.score, 2),
-            "max_points": round(r.max_points, 2) if r.max_points is not None else None,
-            "time_taken": r.time_taken,
-        }
-        for r in q
-    ]
+
+    guest_count = 1
+    board = []
+    for r in q:
+        username = r.username
+        if not username:
+            username = f"Guest {guest_count}"
+            guest_count += 1
+        board.append(
+            {
+                "username": username,
+                "score": round(r.score, 2),
+                "max_points": round(r.max_points, 2) if r.max_points is not None else None,
+                "time_taken": r.time_taken,
+            }
+        )
+    return board
 
 @bp.route("/")
 def home():
@@ -150,6 +167,8 @@ def home():
 @bp.route("/quiz", methods=["GET", "POST"])
 def show_quiz():
     conf_map, colleges = load_confs()
+    quiz_key = None
+    is_bonus_quiz = False
 
     if request.method == "POST":
         # (Unchanged) read quiz_json_path from the form and grade it
@@ -163,11 +182,12 @@ def show_quiz():
             normalise_usc(pl, conf_map)
 
         quiz_key = os.path.basename(qp)
+        is_bonus_quiz = qp.startswith(BONUS_DIR)
         time_taken = request.form.get("time_taken", type=int)
 
         existing_score = None
+        today = datetime.utcnow().date()
         if current_user.is_authenticated:
-            today = datetime.utcnow().date()
             existing_score = (
                 ScoreLog.query.filter(
                     ScoreLog.user_id == current_user.id,
@@ -176,6 +196,18 @@ def show_quiz():
                 )
                 .first()
             )
+        else:
+            sid_key = f"guest_score_{quiz_key}"
+            sid = session.get(sid_key)
+            if sid:
+                existing_score = (
+                    ScoreLog.query.filter(
+                        ScoreLog.id == sid,
+                        ScoreLog.quiz_id == quiz_key,
+                        func.date(ScoreLog.timestamp) == today,
+                    )
+                    .first()
+                )
 
         results, correct_answers, share_statuses = [], [], []
         score, max_points = 0.0, 0.0
@@ -236,6 +268,8 @@ def show_quiz():
             )
             db.session.add(score_entry)
             db.session.commit()
+            if not current_user.is_authenticated:
+                session[f"guest_score_{quiz_key}"] = score_entry.id
         else:
             score = existing_score.score
             max_points = existing_score.max_points
@@ -284,6 +318,9 @@ def show_quiz():
         share_lines += ["", perf_text, "Play now: www.starting5.us"]
         share_message = "\n".join(share_lines)
 
+        if is_bonus_quiz:
+            session.pop("bonus_unlocked", None)
+
         return render_template(
             "results.html",
             data            = data,
@@ -297,26 +334,41 @@ def show_quiz():
             quiz_id        = os.path.basename(qp),
             percentile     = percentile,
             streak          = streak,
-            share_message   = share_message,
-            performance_text= perf_text,
-            leaderboard     = leaderboard,
-            show_leaderboard= show_leaderboard,
+        share_message   = share_message,
+        performance_text= perf_text,
+        leaderboard     = leaderboard,
+        show_leaderboard= show_leaderboard,
+        show_share      = not is_bonus_quiz,
         )
 
     # ─────────────────────────────────────────────────────────────────────────────
     # GET: serve whatever JSON is in CURRENT_DIR (there should be exactly one file)
     # ─────────────────────────────────────────────────────────────────────────────
-    # Ensure current_quiz folder exists (if not, create it)
-    os.makedirs(CURRENT_DIR, exist_ok=True)
+    bonus_mode = request.args.get("bonus") == "1"
+    if bonus_mode:
+        if not session.get("bonus_unlocked"):
+            return redirect(url_for("main.show_quiz"))
+        os.makedirs(BONUS_DIR, exist_ok=True)
+        bonus_files = [f for f in os.listdir(BONUS_DIR) if f.lower().endswith(".json")]
+        if not bonus_files:
+            return "❌ No bonus quiz available.", 500
+        quiz_filename = random.choice(bonus_files)
+        quiz_path = os.path.join(BONUS_DIR, quiz_filename)
+        is_bonus_quiz = True
+    else:
+        # Ensure current_quiz folder exists (if not, create it)
+        os.makedirs(CURRENT_DIR, exist_ok=True)
 
-    # Look for any .json in CURRENT_DIR
-    current_files = [f for f in os.listdir(CURRENT_DIR) if f.lower().endswith(".json")]
-    if not current_files:
-        return "❌ No current quiz loaded. Please run the updater script.", 500
+        # Look for any .json in CURRENT_DIR
+        current_files = [f for f in os.listdir(CURRENT_DIR) if f.lower().endswith(".json")]
+        if not current_files:
+            return "❌ No current quiz loaded. Please run the updater script.", 500
 
-    # We assume only ONE file should be there at a time
-    quiz_filename = current_files[0]
-    quiz_path = os.path.join(CURRENT_DIR, quiz_filename)
+        # We assume only ONE file should be there at a time
+        quiz_filename = current_files[0]
+        quiz_path = os.path.join(CURRENT_DIR, quiz_filename)
+
+    quiz_key = os.path.basename(quiz_path)
 
     with open(quiz_path, encoding="utf-8") as f:
         data = json.load(f)
@@ -343,7 +395,7 @@ def show_quiz():
                 else:
                     break
 
-    leaderboard = get_leaderboard(os.path.basename(quiz_path))
+    leaderboard = get_leaderboard(quiz_key)
     show_leaderboard = False
     
     return render_template(
@@ -356,12 +408,13 @@ def show_quiz():
         score           = None,
         max_points      = None,
         quiz_json_path  = quiz_path,
-        quiz_id        = os.path.basename(quiz_path),
+        quiz_id        = quiz_key,
         streak         = streak,
         share_message  = None,
         performance_text = None,
         leaderboard = leaderboard,
         show_leaderboard= show_leaderboard,
+        show_share      = not bonus_mode,
 
     )
 
@@ -381,3 +434,9 @@ def player_accuracy(player_name):
     response.headers["Expires"] = "0"
 
     return response
+
+
+@bp.route("/record_share", methods=["POST"])
+def record_share():
+    session["bonus_unlocked"] = True
+    return jsonify({"status": "ok"})
