@@ -204,10 +204,12 @@
         </div>
         {% endif %}
         <h2 class="score-line">You scored {{ score }} / {{ max_points }}</h2>
+        {% if show_share %}
         <div class="share-row">
-          <button id="share-btn" type="button" class="share-pill">SHARE</button>
+          <button id="share-btn" type="button" class="share-pill">Share with a friend to play the Bonus Quiz</button>
           <span id="share-confirm" style="display:none">Copied!</span>
         </div>
+        {% endif %}
         {% if show_leaderboard %}
         <a href="#" id="view-leaderboard" class="leaderboard-link">view leaderboard</a>
         {% endif %}
@@ -739,7 +741,14 @@
   const msg = {{ share_message|tojson }};
   $('#share-btn').on('click', function () {
     navigator.clipboard.writeText(msg).then(() => {
-      $('#share-confirm').fadeIn().delay(1500).fadeOut();
+      fetch('/record_share', { method: 'POST' }).then(() => {
+        $('#share-confirm')
+          .fadeIn()
+          .delay(5000)
+          .fadeOut(() => {
+            window.location.href = '/quiz?bonus=1';
+          });
+      });
     });
   });
   $('#view-leaderboard').on('click', function (e) {
