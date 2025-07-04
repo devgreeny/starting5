@@ -370,6 +370,7 @@ def show_quiz():
 
     quiz_key = os.path.basename(quiz_path)
 
+
     with open(quiz_path, encoding="utf-8") as f:
         data = json.load(f)
     for pl in data["players"]:
