@@ -9,21 +9,24 @@ import sys
 PROJECT_ROOT   = os.path.abspath(os.path.dirname(__file__))  # /home/devgreeny/starting5_v3
 PRELOADED_DIR  = os.path.join(PROJECT_ROOT, "app", "static", "preloaded_quizzes")
 CURRENT_DIR    = os.path.join(PROJECT_ROOT, "app", "static", "current_quiz")
+ARCHIVE_DIR    = os.path.join(PROJECT_ROOT, "app", "static", "archive_quizzes")
 # ────────────────────────────────────────────────────────────────────────────────
 
 def main():
-    # 1) Ensure the current_quiz folder exists
+    # 1) Ensure necessary folders exist
     os.makedirs(CURRENT_DIR, exist_ok=True)
+    os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
-    # 2) Remove any existing file in CURRENT_DIR
+    # 2) Move any existing quiz in CURRENT_DIR to ARCHIVE_DIR
     existing = [f for f in os.listdir(CURRENT_DIR) if f.lower().endswith(".json")]
     for old_file in existing:
         old_path = os.path.join(CURRENT_DIR, old_file)
+        archive_path = os.path.join(ARCHIVE_DIR, old_file)
         try:
-            os.remove(old_path)
-            print(f"🗑️ Removed old quiz: {old_file}")
+            shutil.move(old_path, archive_path)
+            print(f"📦 Archived old quiz: {old_file}")
         except Exception as e:
-            print(f"⚠️ Could not remove '{old_file}': {e}", file=sys.stderr)
+            print(f"⚠️ Could not archive '{old_file}': {e}", file=sys.stderr)
 
     # 3) List all remaining quizzes in PRELOADED_DIR
     all_quizzes = [f for f in os.listdir(PRELOADED_DIR) if f.lower().endswith(".json")]
