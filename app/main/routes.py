@@ -1,6 +1,6 @@
 import os, json, random
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response, session
-from flask_login import current_user, login_required
+from flask_login import current_user
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from app.models import db, GuessLog, ScoreLog
@@ -392,7 +392,6 @@ def show_quiz():
         quiz_filename = current_files[0]
         quiz_path = os.path.join(CURRENT_DIR, quiz_filename)
 
-    quiz_key = os.path.basename(quiz_path)
     quiz_key = os.path.basename(quiz_path)
 
 

@@ -64,12 +64,6 @@ body {
   margin-bottom: 0.33rem;
 }
 
-.header-game_id span {
-  display: block;
-  font-size: 0.55rem;
-  color: var(--light-gray);
-  margin-bottom: 0.88rem;
-}
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* 6) Rows of Cards */
