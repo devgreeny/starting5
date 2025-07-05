@@ -10,7 +10,6 @@
   <meta charset="UTF-8" />
   <title>Starting5</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Starting5</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='results.css') }}" />
@@ -163,10 +162,14 @@
       {% if show_leaderboard %}
       <a href="#" id="view-leaderboard" class="leaderboard-link">view leaderboard</a>
       {% endif %}
+      <a href="#" id="open-archive" class="archive-btn">Past Quizzes</a>
+      {% include '_archive_modal.html' %}
     </div>
   </div>
   <script>
     const shareMessage = {{ share_message|tojson }};
+    const isAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
+    const loginUrl = "{{ url_for('auth.login') }}";
   </script>
   <script src="{{ url_for('static', filename='results.js') }}"></script>
 </body>

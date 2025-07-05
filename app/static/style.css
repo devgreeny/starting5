@@ -64,12 +64,6 @@ body {
   margin-bottom: 0.33rem;
 }
 
-.header-game_id span {
-  display: block;
-  font-size: 0.55rem;
-  color: var(--light-gray);
-  margin-bottom: 0.88rem;
-}
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* 6) Rows of Cards */
@@ -517,6 +511,13 @@ body {
   font-size: 0.75rem;
 }
 
+.played-note {
+  margin: 0.5rem 0 1rem;
+  font-size: 0.75rem;
+  color: var(--orange);
+  text-align: center;
+}
+
 
 #user-stats-box {
   display: none;
@@ -725,5 +726,41 @@ body {
 }
 .leaderboard-table th {
   text-align: left;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Archive Modal */
+.archive-modal {
+  display: none;
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -40%);
+  background-color: var(--modal-bg);
+  border: 2px solid var(--gold);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 1rem rgba(255, 255, 255, 0.25);
+  color: var(--gold);
+  z-index: 1001;
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+}
+.archive-modal ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.archive-modal li {
+  margin-bottom: 0.5rem;
+}
+.archive-btn {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.6rem;
+  color: var(--gold);
+  text-decoration: underline;
 }
 
