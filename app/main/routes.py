@@ -138,7 +138,9 @@ def get_leaderboard(quiz_id):
     """Return all results for today, labeling guests sequentially."""
     from app.models import User  # local import to avoid circular deps
 
+
     start, end = today_est_bounds()
+    today = datetime.utcnow().date()
 
     q = (
         db.session.query(
@@ -154,6 +156,8 @@ def get_leaderboard(quiz_id):
             ScoreLog.timestamp >= start,
             ScoreLog.timestamp < end,
         )
+
+        .filter(ScoreLog.quiz_id == quiz_id, func.date(ScoreLog.timestamp) == today)
         .order_by(ScoreLog.score.desc(), ScoreLog.time_taken.asc())
         .all()
     )
@@ -203,6 +207,7 @@ def show_quiz():
 
         existing_score = None
         start, end = today_est_bounds()
+        today = datetime.utcnow().date()
         if current_user.is_authenticated:
             existing_score = (
                 ScoreLog.query.filter(
@@ -223,6 +228,7 @@ def show_quiz():
                         ScoreLog.quiz_id == quiz_key,
                         ScoreLog.timestamp >= start,
                         ScoreLog.timestamp < end,
+                        func.date(ScoreLog.timestamp) == today,
                     )
                     .first()
                 )
@@ -387,6 +393,9 @@ def show_quiz():
         quiz_path = os.path.join(CURRENT_DIR, quiz_filename)
 
     quiz_key = os.path.basename(quiz_path)
+    quiz_key = os.path.basename(quiz_path)
+
+
 
     with open(quiz_path, encoding="utf-8") as f:
         data = json.load(f)
