@@ -7,7 +7,7 @@
   
   .results-cards {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     gap: 0.5rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;

@@ -1,7 +1,8 @@
 import os, json, random
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response, session
 from flask_login import current_user, login_required
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from app.models import db, GuessLog, ScoreLog
 from sqlalchemy import func
 from urllib.parse import unquote
@@ -13,6 +14,17 @@ QUIZ_DIR     = os.path.join(PROJECT_ROOT, "app", "static", "preloaded_quizzes")
 CURRENT_DIR  = os.path.join(PROJECT_ROOT, "app", "static", "current_quiz")
 BONUS_DIR    = os.path.join(PROJECT_ROOT, "app", "static", "bonus_quiz")
 CBB_CSV      = os.path.join(PROJECT_ROOT, "app", "static", "json", "cbb25.csv")
+
+# Eastern timezone for daily resets
+EASTERN = ZoneInfo("America/New_York")
+
+def today_est_bounds():
+    """Return today's start and end timestamps in UTC for Eastern time."""
+    now_est = datetime.now(EASTERN)
+    start_est = now_est.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_utc = start_est.astimezone(timezone.utc).replace(tzinfo=None)
+    end_utc = (start_est + timedelta(days=1)).astimezone(timezone.utc).replace(tzinfo=None)
+    return start_utc, end_utc
 
 
 def load_confs():
@@ -126,6 +138,8 @@ def get_leaderboard(quiz_id):
     """Return all results for today, labeling guests sequentially."""
     from app.models import User  # local import to avoid circular deps
 
+
+    start, end = today_est_bounds()
     today = datetime.utcnow().date()
 
     q = (
@@ -137,6 +151,12 @@ def get_leaderboard(quiz_id):
             ScoreLog.user_id,
         )
         .outerjoin(User, User.id == ScoreLog.user_id)
+        .filter(
+            ScoreLog.quiz_id == quiz_id,
+            ScoreLog.timestamp >= start,
+            ScoreLog.timestamp < end,
+        )
+
         .filter(ScoreLog.quiz_id == quiz_id, func.date(ScoreLog.timestamp) == today)
         .order_by(ScoreLog.score.desc(), ScoreLog.time_taken.asc())
         .all()
@@ -186,13 +206,15 @@ def show_quiz():
         time_taken = request.form.get("time_taken", type=int)
 
         existing_score = None
+        start, end = today_est_bounds()
         today = datetime.utcnow().date()
         if current_user.is_authenticated:
             existing_score = (
                 ScoreLog.query.filter(
                     ScoreLog.user_id == current_user.id,
                     ScoreLog.quiz_id == quiz_key,
-                    func.date(ScoreLog.timestamp) == today,
+                    ScoreLog.timestamp >= start,
+                    ScoreLog.timestamp < end,
                 )
                 .first()
             )
@@ -204,6 +226,8 @@ def show_quiz():
                     ScoreLog.query.filter(
                         ScoreLog.id == sid,
                         ScoreLog.quiz_id == quiz_key,
+                        ScoreLog.timestamp >= start,
+                        ScoreLog.timestamp < end,
                         func.date(ScoreLog.timestamp) == today,
                     )
                     .first()
@@ -369,6 +393,8 @@ def show_quiz():
         quiz_path = os.path.join(CURRENT_DIR, quiz_filename)
 
     quiz_key = os.path.basename(quiz_path)
+    quiz_key = os.path.basename(quiz_path)
+
 
 
     with open(quiz_path, encoding="utf-8") as f:
