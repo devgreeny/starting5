@@ -204,10 +204,12 @@
         </div>
         {% endif %}
         <h2 class="score-line">You scored {{ score }} / {{ max_points }}</h2>
+        {% if show_share %}
         <div class="share-row">
-          <button id="share-btn" type="button" class="share-pill">SHARE</button>
+          <button id="share-btn" type="button" class="share-pill">Share with a friend to play the Bonus Quiz</button>
           <span id="share-confirm" style="display:none">Copied!</span>
         </div>
+        {% endif %}
         {% if show_leaderboard %}
         <a href="#" id="view-leaderboard" class="leaderboard-link">view leaderboard</a>
         {% endif %}
@@ -486,80 +488,7 @@
     {% endif %}
   </div>
 
-    <!-- ── Score Modal ─────────────────────────────────────────────────────── -->
-    {% if not results %}
-      <div id="instructions-modal" class="modal">
-        <div class="modal-content">
-          <section class="scoreboard">
-            <div class="board-section">
-              <div class="label">College players</div>
-              <ul class="rules-list">
-                <li>Exact school — <span class="green">1&nbsp;pt</span></li>
-                <li>Used hint — <span class="orange">0.75&nbsp;pt</span> (max)</li>
-              </ul>
-            </div>
-
-            <div class="board-section">
-              <div class="label">Non-college players</div>
-              <ul class="rules-list">
-                <li>Exact club — <span class="green">1.25&nbsp;pt</span></li>
-                <li>Correct country — 1&nbsp;pt</li>
-              </ul>
-            </div>
-
-            <div class="board-section">
-              <div class="label">Hints</div>
-              <ul class="rules-list">
-                <li>Shows conference <em>or</em> “didn’t attend college.”</li>
-                <li>No penalty on non-college hints.</li>
-                <li>College drops to 0.75&nbsp;pt max.</li>
-              </ul>
-            </div>
-
-            <div class="board-section">
-              <div class="label">Random</div>
-              Fills a random guess for you.
-            </div>
-
-            <div class="board-section">
-              <div class="label">Scoring examples</div>
-              <div class="examples">
-                <div class="example">
-                  <img src="https://cdn.nba.com/headshots/nba/latest/260x190/203114.png" alt="Khris Middleton">
-                  <div class="ex-text">
-                    <span class="player">Khris&nbsp;Middleton</span>
-                    <ul class="points">
-                      <li><span class="green">Texas&nbsp;A&amp;M — 1&nbsp;pt</span></li>
-                      <li><span class="orange">Texas&nbsp;A&amp;M (using hint) — 0.75&nbsp;pt</span></li>
-                      <li><span class="red">Wrong school — 0&nbsp;pt</span></li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div class="example">
-                  <img src="https://cdn.nba.com/headshots/nba/latest/260x190/203507.png" alt="Giannis Antetokounmpo">
-                  <div class="ex-text">
-                    <span class="player">Giannis&nbsp;Antetokounmpo</span>
-                    <ul class="points">
-                      <li>Greece — 1&nbsp;pt</li>
-                      <li><span class="green">Panathinaikos — 1.25&nbsp;pt</span></li>
-                      <li><span class="red">Wrong guess — 0&nbsp;pt</span></li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="board-section">
-              <div class="label">Total score</div>
-              Your points ÷ puzzle’s full value (max pts never shrink).
-            </div>
-          </section>
-
-          <button id="close-instructions" class="play-again-modal">Start Quiz</button>
-        </div>
-      </div>
-    {% endif %}
+    <!-- formerly instructions modal removed -->
   </div>
   <!-- /content -->
 
@@ -606,14 +535,7 @@
     }
   }
 
-  const seen = localStorage.getItem('seenInstructions');
-  if (!seen) {
-    $('#instructions-modal').fadeIn();
-  }
-  $('#close-instructions').on('click', function () {
-    $('#instructions-modal').fadeOut();
-    localStorage.setItem('seenInstructions', '1');
-  });
+
 
   /* ----- Select2 init ---------------------------------------------------- */
   $('.guess-select').each(function () {
@@ -739,7 +661,14 @@
   const msg = {{ share_message|tojson }};
   $('#share-btn').on('click', function () {
     navigator.clipboard.writeText(msg).then(() => {
-      $('#share-confirm').fadeIn().delay(1500).fadeOut();
+      fetch('/record_share', { method: 'POST' }).then(() => {
+        $('#share-confirm')
+          .fadeIn()
+          .delay(5000)
+          .fadeOut(() => {
+            window.location.href = '/quiz?bonus=1';
+          });
+      });
     });
   });
   $('#view-leaderboard').on('click', function (e) {

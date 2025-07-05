@@ -24,7 +24,14 @@ $(function () {
     function setupShare(btn, confirm) {
       $(btn).on('click', function () {
         navigator.clipboard.writeText(shareMessage).then(() => {
-          $(confirm).fadeIn().delay(1500).fadeOut();
+          fetch('/record_share', { method: 'POST' }).then(() => {
+            $(confirm)
+              .fadeIn()
+              .delay(5000)
+              .fadeOut(() => {
+                window.location.href = '/quiz?bonus=1';
+              });
+          });
         });
       });
     }

@@ -136,18 +136,22 @@
           {% endfor %}
           </tbody>
         </table>
+        {% if show_share %}
         <div class="share-row">
-          <button id="share-btn-lb" type="button" class="share-pill">SHARE</button>
+          <button id="share-btn-lb" type="button" class="share-pill">Share with a friend to play the Bonus Quiz</button>
           <span id="share-confirm-lb" class="share-confirm" style="display:none">Copied!</span>
         </div>
+        {% endif %}
         <a href="#" id="back-answers" class="leaderboard-link">Back to answers</a>
       </div>
       {% endif %}
       <h2 class="score-line">You scored {{ score }} / {{ max_points }}</h2>
+      {% if show_share %}
       <div id="results-share" class="share-row">
-        <button id="share-btn" type="button" class="share-pill">SHARE</button>
+        <button id="share-btn" type="button" class="share-pill">Share with a friend to play the Bonus Quiz</button>
         <span id="share-confirm" class="share-confirm" style="display:none">Copied!</span>
       </div>
+      {% endif %}
       {% if show_leaderboard %}
       <a href="#" id="view-leaderboard" class="leaderboard-link">view leaderboard</a>
       {% endif %}
