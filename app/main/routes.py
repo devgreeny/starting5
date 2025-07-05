@@ -1,6 +1,6 @@
 import os, json, random
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response, session
-from flask_login import current_user, login_required
+from flask_login import current_user
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from app.models import db, GuessLog, ScoreLog

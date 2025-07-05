@@ -84,6 +84,7 @@ $(function () {
         window.location.href = loginUrl;
         return;
       }
+
       $('#archive-modal').fadeIn();
     });
 
