@@ -1,6 +1,6 @@
 import os, json, random
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response, session
-from flask_login import current_user
+from flask_login import current_user, login_required
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from app.models import db, GuessLog, ScoreLog
@@ -179,9 +179,202 @@ def get_leaderboard(quiz_id):
         )
     return board
 
+def calc_streak(user_id):
+    """Return the user's current daily streak."""
+    logs = (
+        ScoreLog.query.filter_by(user_id=user_id)
+        .order_by(ScoreLog.timestamp.desc())
+        .all()
+    )
+    if not logs:
+        return 0
+    streak = 1
+    prev = logs[0].timestamp.date()
+    for log in logs[1:]:
+        d = log.timestamp.date()
+        if d == prev:
+            continue
+        if (prev - d).days == 1:
+            streak += 1
+            prev = d
+        else:
+            break
+    return streak
+
 @bp.route("/")
 def home():
     return redirect(url_for("main.show_quiz"))
+
+
+@bp.route("/archive")
+@login_required
+def archive_index():
+    """Display available past quizzes for logged-in users."""
+    quizzes = [f for f in os.listdir(QUIZ_DIR) if f.lower().endswith(".json")]
+    quizzes.sort(reverse=True)
+    return render_template("archive.html", quizzes=quizzes)
+
+
+@bp.route("/archive/<quiz_id>", methods=["GET", "POST"])
+@login_required
+def play_archived_quiz(quiz_id):
+    conf_map, colleges = load_confs()
+    quiz_path = os.path.join(QUIZ_DIR, quiz_id)
+    if not os.path.isfile(quiz_path):
+        return redirect(url_for("main.archive_index"))
+
+    quiz_key = os.path.basename(quiz_path)
+
+    if request.method == "POST":
+        with open(quiz_path, encoding="utf-8") as f:
+            data = json.load(f)
+        for pl in data["players"]:
+            normalise_usc(pl, conf_map)
+
+        time_taken = request.form.get("time_taken", type=int)
+
+        existing_score = ScoreLog.query.filter_by(user_id=current_user.id, quiz_id=quiz_key).first()
+
+        results, correct_answers, share_statuses = [], [], []
+        score, max_points = 0.0, 0.0
+
+        for idx, p in enumerate(data["players"]):
+            name        = p["name"]
+            school_type = p["school_type"]
+            team_name   = p["school"]
+            country     = p["country"]
+            guess       = request.form.get(name, "").strip()
+            used_hint   = request.form.get(f"hint_used_{idx}", "0") == "1"
+
+            is_correct = False
+            pts = 0.0
+
+            if school_type == "College":
+                max_points += 1.0
+                if guess.lower() == team_name.lower():
+                    pts = 0.75 if used_hint else 1.0
+                    is_correct = True
+                score += pts
+                results.append("✅" if is_correct else "❌")
+                share_statuses.append("🟨 -- Used Hint" if (is_correct and used_hint) else ("✅ -- Correct" if is_correct else "❌ -- Missed"))
+                correct_answers.append(f"I played for {team_name}")
+            else:
+                max_points += 1.0
+                if guess.lower() == team_name.lower():
+                    pts = 1.0
+                    is_correct = True
+                elif guess.lower() == country.lower():
+                    pts = 0.75
+                    is_correct = True
+                score += pts
+                results.append("✅" if is_correct else "❌")
+                share_statuses.append("🟨 -- Used Hint" if (is_correct and used_hint) else ("✅ -- Correct" if is_correct else "❌ -- Missed"))
+                correct_answers.append(f"I am from {country} and played for {team_name}")
+
+            if not existing_score:
+                guess_log = GuessLog(
+                    user_id=current_user.id,
+                    player_name=name,
+                    school=team_name,
+                    guess=guess,
+                    is_correct=is_correct,
+                    used_hint=used_hint,
+                )
+                db.session.add(guess_log)
+
+        if not existing_score:
+            score_entry = ScoreLog(
+                quiz_id=quiz_key,
+                user_id=current_user.id,
+                score=score,
+                max_points=max_points,
+                time_taken=time_taken,
+            )
+            db.session.add(score_entry)
+            db.session.commit()
+        else:
+            score = existing_score.score
+            max_points = existing_score.max_points
+            time_taken = existing_score.time_taken
+
+        streak = calc_streak(current_user.id)
+
+        scores = [s.score for s in ScoreLog.query.filter_by(quiz_id=quiz_key).all()]
+        percentile = 0
+        if scores:
+            scores.sort()
+            rank = sum(s <= score for s in scores)
+            percentile = round(100 * rank / len(scores))
+
+        leaderboard = get_leaderboard(quiz_key)
+        show_leaderboard = bool(leaderboard)
+
+        perf_text = performance_text(score, max_points)
+
+        date_str = datetime.utcnow().strftime("%B %-d, %Y")
+        share_lines = [
+            f"\U0001F3C0 Starting5 Puzzle – {date_str}",
+            f"\U0001F4C8 Score: {round(score,2)}/{round(max_points,2)}",
+            "",
+        ]
+        for pl, status in zip(data["players"], share_statuses):
+            share_lines.append(f"\uD83D\uDD39 {pl['position']}: {status}")
+        share_lines += ["", perf_text, "Play now: www.starting5.us"]
+        share_message = "\n".join(share_lines)
+
+        return render_template(
+            "results.html",
+            data=data,
+            colleges=colleges,
+            college_confs=conf_map,
+            results=results,
+            correct_answers=correct_answers,
+            score=round(score, 2),
+            max_points=round(max_points, 2),
+            quiz_json_path=quiz_path,
+            quiz_id=quiz_key,
+            percentile=percentile,
+            streak=streak,
+            share_message=share_message,
+            performance_text=perf_text,
+            leaderboard=leaderboard,
+            show_leaderboard=show_leaderboard,
+            show_share=False,
+            already_played=False,
+        )
+
+    # GET mode
+    with open(quiz_path, encoding="utf-8") as f:
+        data = json.load(f)
+    for pl in data["players"]:
+        normalise_usc(pl, conf_map)
+
+    already_played = bool(
+        ScoreLog.query.filter_by(user_id=current_user.id, quiz_id=quiz_key).first()
+    )
+
+    streak = calc_streak(current_user.id)
+    leaderboard = get_leaderboard(quiz_key)
+
+    return render_template(
+        "quiz.html",
+        data=data,
+        colleges=colleges,
+        college_confs=conf_map,
+        results=None,
+        correct_answers=[],
+        score=None,
+        max_points=None,
+        quiz_json_path=quiz_path,
+        quiz_id=quiz_key,
+        streak=streak,
+        share_message=None,
+        performance_text=None,
+        leaderboard=leaderboard,
+        show_leaderboard=False,
+        show_share=False,
+        already_played=already_played,
+    )
 
 
 @bp.route("/quiz", methods=["GET", "POST"])
@@ -363,6 +556,7 @@ def show_quiz():
         leaderboard     = leaderboard,
         show_leaderboard= show_leaderboard,
         show_share      = not is_bonus_quiz,
+        already_played  = False,
         )
 
     # ─────────────────────────────────────────────────────────────────────────────
@@ -441,6 +635,7 @@ def show_quiz():
         leaderboard = leaderboard,
         show_leaderboard= show_leaderboard,
         show_share      = not bonus_mode,
+        already_played  = False,
 
     )
 

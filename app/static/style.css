@@ -511,6 +511,12 @@ body {
   font-size: 0.75rem;
 }
 
+.played-note {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--orange);
+}
+
 
 #user-stats-box {
   display: none;
