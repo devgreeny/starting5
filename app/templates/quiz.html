@@ -2,15 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>NBA College Quiz</title>
-  
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Starting5</title>
+
     <!-- favicon – browser tab icon -->
     <link
-      rel="shortcut icon"
+      rel="icon"
       type="image/x-icon"
-      href="{{ url_for('static', filename='favicon1.ico') }}"
+      href="{{ url_for('static', filename='favicon.ico') }}"
     />
-  
+    <script defer data-domain="starting5.us" src="https://plausible.io/js/script.js"></script>
+
     <!-- Pixel font & main CSS -->
     <link
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
@@ -20,7 +22,7 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
-  
+
     <!-- Select2 (unchanged) -->
     <link
       href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
@@ -30,7 +32,7 @@
     <script
       src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"
     ></script>
-  
+
     <!-- ─────────────────────────────────────────────────────────────────────
          Page‐level overrides (placed *after* style.css so they win):
          1) Force the dark striped background on the entire page (html+body).
@@ -45,16 +47,16 @@
         margin: 0;
         padding: 0;
         min-height: 100vh;
-  
+
         /* repeating dark/navy stripes behind everything */
         background-color: #0f172a !important;
-  
+
         /* make room at top for the fixed auth bar */
         padding-top: 1.5rem;
         font-family: 'Press Start 2P', monospace;
         color: #facc15; /* Gold text by default */
       }
-  
+
       /* ==============================================================================
          2) AUTH BAR: FIXED AT TOP
          ============================================================================== */
@@ -207,7 +209,7 @@
         {% if show_share %}
         <div class="share-row">
           <button id="share-btn" type="button" class="share-pill">Share with a friend to play the Bonus Quiz</button>
-          <span id="share-confirm" style="display:none">Copied!</span>
+          <span id="share-confirm" style="display:none">Copied to Clipboard! Please Share with a Friend.</span>
         </div>
         {% endif %}
         {% if show_leaderboard %}
@@ -220,7 +222,7 @@
     <form method="POST" action="{{ url_for('main.show_quiz') }}">
       <input type="hidden" name="quiz_json_path" value="{{ quiz_json_path }}" />
       <input type="hidden" name="time_taken" id="time_taken_field" value="0" />
-      
+
 
       <!-- ── Top row (players 0–2) ─────────────────────────────────────────── -->
       <div class="row-top">
@@ -339,7 +341,7 @@
                   <span class="wrong">Incorrect</span>
                 {% endif %}
                   <span class="answer">{{ correct_answers[idx] }}</span>
-                
+
                 <!-- Accuracy bar -->
                 <div class="accuracy-bar-row" data-player-name="{{ player.name }}">
                   <span class="accuracy-value">Loading...</span>
@@ -465,7 +467,7 @@
                   <span class="wrong">Incorrect</span>
                 {% endif %}
                   <span class="answer">{{ correct_answers[idx] }}</span>
-                
+
                 <!-- Accuracy bar -->
                 <div class="accuracy-bar-row" data-player-name="{{ player.name }}">
                   <span class="accuracy-value">Loading...</span>
@@ -473,7 +475,7 @@
                     <div class="bar-fill accuracy-fill" style="width: 0%;"></div>
                   </div>
                 </div>
-              </p>            
+              </p>
             {% endif %}
           </div>
         {% endfor %}
@@ -487,8 +489,6 @@
     </form>
     {% endif %}
   </div>
-
-    <!-- formerly instructions modal removed -->
   </div>
   <!-- /content -->
 
@@ -535,7 +535,14 @@
     }
   }
 
-
+  const seen = localStorage.getItem('seenInstructions');
+  if (!seen) {
+    $('#instructions-modal').fadeIn();
+  }
+  $('#close-instructions').on('click', function () {
+    $('#instructions-modal').fadeOut();
+    localStorage.setItem('seenInstructions', '1');
+  });
 
   /* ----- Select2 init ---------------------------------------------------- */
   $('.guess-select').each(function () {
@@ -664,7 +671,7 @@
       fetch('/record_share', { method: 'POST' }).then(() => {
         $('#share-confirm')
           .fadeIn()
-          .delay(5000)
+          .delay(800)
           .fadeOut(() => {
             window.location.href = '/quiz?bonus=1';
           });
