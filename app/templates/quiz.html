@@ -123,6 +123,9 @@
         </span>
       </div>
     </div>
+    {% if already_played %}
+    <p class="played-note">You have already played this quiz.</p>
+    {% endif %}
     {% endif %}
 
     <div class="quiz-wrapper{% if results %} with-score{% endif %}">
@@ -499,6 +502,7 @@
   const key = userId ? `lastPlayedQuiz_${userId}` : 'lastPlayedQuiz_guest';
   const lastPlayed = localStorage.getItem(key);
   const hasResults = {{ 'true' if results else 'false' }};
+  const alreadyPlayed = {{ 'true' if already_played else 'false' }};
 
   if (!hasResults) {
     localStorage.setItem(`quizStart_${quizId}`, Date.now());
@@ -511,14 +515,19 @@
     });
   }
 
+  if (alreadyPlayed) {
+    $('.submit-btn').prop('disabled', true);
+    $('.guess-select').prop('disabled', true);
+  } else if (lastPlayed === quizId && !hasResults) {
+    $('.submit-btn').prop('disabled', true);
+  }
+
   if (hasResults) {
     localStorage.setItem(key, quizId);
     const pct = {{ percentile|default(0) }};
     requestAnimationFrame(() => {
       $('.percentile-fill').css('width', pct + '%');
     });
-  } else if (lastPlayed === quizId) {
-    $('.submit-btn').prop('disabled', true);
   }
 
   if (hasResults) {

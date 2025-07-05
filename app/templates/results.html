@@ -162,6 +162,18 @@
       {% if show_leaderboard %}
       <a href="#" id="view-leaderboard" class="leaderboard-link">view leaderboard</a>
       {% endif %}
+      {% if current_user.is_authenticated %}
+      <a href="#" id="open-archive" class="archive-btn">Past Quizzes</a>
+      <div id="archive-modal" class="archive-modal">
+        <h3>Past Quizzes</h3>
+        <ul>
+          {% for q in archive_quizzes %}
+          <li><a href="{{ url_for('main.play_archived_quiz', quiz_id=q.id) }}">{{ q.label }}</a></li>
+          {% endfor %}
+        </ul>
+        <a href="#" id="close-archive" class="leaderboard-link">Close</a>
+      </div>
+      {% endif %}
     </div>
   </div>
   <script>

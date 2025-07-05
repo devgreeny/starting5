@@ -77,4 +77,14 @@ $(function () {
         });
       });
     });
+
+    $('#open-archive').on('click', function (e) {
+      e.preventDefault();
+      $('#archive-modal').fadeIn();
+    });
+
+    $('#close-archive').on('click', function (e) {
+      e.preventDefault();
+      $('#archive-modal').fadeOut();
+    });
   });
