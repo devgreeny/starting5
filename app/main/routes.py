@@ -4,7 +4,6 @@ from flask_login import current_user, login_required
 from datetime import datetime
 from app.models import db, GuessLog, ScoreLog
 from sqlalchemy import func
-from urllib.parse import unquote
 
 bp = Blueprint("main", __name__)
 
@@ -662,28 +661,6 @@ def show_quiz():
         archive_quizzes = get_archive_list(),
 
     )
-
-
-@bp.route("/player_accuracy/<player_name>")
-def player_accuracy(player_name):
-    """Return accuracy for a single player within a specific quiz."""
-    safe_name = unquote(player_name)
-    quiz_id = request.args.get("quiz_id")
-    if not quiz_id:
-        return jsonify({"error": "quiz_id is required"}), 400
-
-    total = GuessLog.query.filter_by(player_name=safe_name, quiz_id=quiz_id).count()
-    correct = GuessLog.query.filter_by(
-        player_name=safe_name, quiz_id=quiz_id, is_correct=True
-    ).count()
-
-    percent = round(100 * correct / total, 1) if total else 0
-    resp = jsonify({"player": safe_name, "accuracy": percent})
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    resp.headers["Pragma"] = "no-cache"
-    resp.headers["Expires"] = "0"
-    return make_response(resp)
-
 
 @bp.route("/record_share", methods=["POST"])
 def record_share():
