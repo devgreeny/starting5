@@ -1,26 +1,5 @@
 $(function () {
-    $("[data-player-name]").each(function () {
-      const el = $(this);
-      const playerName = el.data("player-name");
-      fetch('/player_accuracy/' + encodeURIComponent(playerName) + '?quiz_id=' + encodeURIComponent(quizId))
-        .then((res) => res.json())
-        .then((data) => {
-          const percent = data.accuracy || 0;
-          const bar = el.find(".accuracy-fill");
-          const text = el.find(".accuracy-value");
-          text.text(`Of other users, ${percent}% guessed ${playerName} correctly.`);
-          text.addClass("show");
-          bar.css("width", "0%");
-          requestAnimationFrame(() => {
-            bar.css("width", `${percent}%`);
-          });
-        })
-        .catch(() => {
-          el.find(".accuracy-value").text("Accuracy unavailable").addClass("show");
-          el.find(".accuracy-fill").css("width", "0%");
-        });
-    });
-  
+
     function setupShare(btn, confirm) {
       $(btn).on('click', function () {
         navigator.clipboard.writeText(shareMessage).then(() => {
@@ -78,12 +57,23 @@ $(function () {
       });
     });
 
-    $('#open-archive').on('click', function (e) {
+    $('#view-past-quizzes').on('click', function (e) {
       e.preventDefault();
       if (!isAuthenticated) {
         window.location.href = loginUrl;
         return;
       }
+
+      const $list = $('#archive-list').empty();
+      archiveQuizzes.forEach((q) => {
+        $('<li>')
+          .append(
+            $('<a>')
+              .attr('href', '/archive/' + encodeURIComponent(q.id))
+              .text(q.label)
+          )
+          .appendTo($list);
+      });
 
       $('#archive-modal').fadeIn();
     });

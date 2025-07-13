@@ -1,9 +1,5 @@
 <div id="archive-modal" class="archive-modal">
   <h3>Past Quizzes</h3>
-  <ul>
-    {% for q in archive_quizzes %}
-    <li><a href="{{ url_for('main.play_archived_quiz', quiz_id=q.id) }}">{{ q.label }}</a></li>
-    {% endfor %}
-  </ul>
+  <ul id="archive-list"></ul>
   <a href="#" id="close-archive" class="leaderboard-link">Close</a>
 </div>
