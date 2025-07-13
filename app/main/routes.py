@@ -1,5 +1,15 @@
 import os, json, random
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response, session
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    jsonify,
+    make_response,
+    session,
+    current_app,
+)
 from flask_login import current_user, login_required
 from datetime import datetime
 from app.models import db, GuessLog, ScoreLog
@@ -300,6 +310,9 @@ def play_archived_quiz(quiz_id):
                     used_hint=used_hint,
                     quiz_id=quiz_key,
                 )
+                current_app.logger.debug(
+                    f"[DBG] Adding GuessLog(user={current_user.id}, player={name!r}, quiz_key={quiz_key!r}, is_correct={is_correct})"
+                )
                 db.session.add(guess_log)
 
         if not existing_score:
@@ -488,6 +501,9 @@ def show_quiz():
                     is_correct=is_correct,
                     used_hint=used_hint,
                     quiz_id=quiz_key,
+                )
+                current_app.logger.debug(
+                    f"[DBG] Adding GuessLog(user={current_user.id}, player={name!r}, quiz_key={quiz_key!r}, is_correct={is_correct})"
                 )
                 db.session.add(guess_log)
 
