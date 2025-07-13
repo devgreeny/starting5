@@ -30,3 +30,9 @@ class Config:
         )
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Keep MySQL connections alive and test before use
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+    }
