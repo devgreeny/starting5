@@ -723,10 +723,13 @@ body {
 .archive-modal li {
   margin-bottom: 0.5rem;
 }
-.archive-btn {
-  display: block;
+
+.past-quiz-line {
   margin-top: 0.5rem;
   font-size: 0.6rem;
+}
+
+.past-quiz-line a {
   color: var(--gold);
   text-decoration: underline;
 }
