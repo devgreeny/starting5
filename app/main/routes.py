@@ -300,6 +300,9 @@ def play_archived_quiz(quiz_id):
                     used_hint=used_hint,
                     quiz_id=quiz_key,
                 )
+                current_app.logger.debug(
+                    f"[DBG] Adding GuessLog(user={current_user.id}, player={name!r}, quiz_key={quiz_key!r}, is_correct={is_correct})"
+                )
                 db.session.add(guess_log)
 
         if not existing_score:
@@ -489,6 +492,9 @@ def show_quiz():
                     used_hint=used_hint,
                     quiz_id=quiz_key,
                 )
+                current_app.logger.debug(
+                    f"[DBG] Adding GuessLog(user={current_user.id}, player={name!r}, quiz_key={quiz_key!r}, is_correct={is_correct})"
+                )
                 db.session.add(guess_log)
 
         if not existing_score:
@@ -660,10 +666,11 @@ def show_quiz():
 
 @bp.route("/player_accuracy/<player_name>")
 def player_accuracy(player_name):
+    """Return accuracy for a single player within a specific quiz."""
     safe_name = unquote(player_name)
     quiz_id = request.args.get("quiz_id")
     if not quiz_id:
-        return jsonify({"player": safe_name, "accuracy": 0}), 400
+        return jsonify({"error": "quiz_id is required"}), 400
 
     total = GuessLog.query.filter_by(player_name=safe_name, quiz_id=quiz_id).count()
     correct = GuessLog.query.filter_by(
