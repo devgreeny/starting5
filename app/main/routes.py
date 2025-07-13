@@ -181,6 +181,7 @@ def get_leaderboard(quiz_id):
         )
         .outerjoin(User, User.id == ScoreLog.user_id)
         .filter(ScoreLog.quiz_id == quiz_id)
+        .filter(ScoreLog.user_id.isnot(None))
         .order_by(ScoreLog.score.desc(), ScoreLog.time_taken.asc())
         .all()
     )

@@ -3,6 +3,8 @@ import random
 import time
 import re
 from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import pandas as pd
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import (
@@ -17,6 +19,16 @@ DATA_PATH = Path(__file__).resolve().parent / "app" / "static" / "json" / "cbb25
 
 df_d1 = pd.read_csv(DATA_PATH)
 df_d1 = df_d1.rename(columns={"School": "Official", "Common name": "Common", "Primary": "Conference"})
+
+
+def today_filename(prefix=""):
+    """Return today's date string in America/New_York as ``YYYY-MM-DD.json``."""
+    tz = ZoneInfo("America/New_York")
+    today = datetime.now(tz).date()
+    name = today.strftime("%Y-%m-%d") + ".json"
+    if prefix:
+        return f"{prefix}{name}"
+    return name
 
 def clean_name(name):
     if not isinstance(name, str):
@@ -234,7 +246,7 @@ def generate_quiz_from_season(season, save_dir, manual_avatars=False, avatar_map
 
             if team_lineups:
                 selected = random.choice(team_lineups)
-                out_path = Path(save_dir) / f"{selected['season']}_{selected['game_id']}_{selected['team_abbr']}.json"
+                out_path = Path(save_dir) / today_filename()
                 with out_path.open("w", encoding="utf-8") as f:
                     json.dump(selected, f, indent=2, ensure_ascii=False)
                 print(f"Saved: {out_path}")
