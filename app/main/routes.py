@@ -239,7 +239,13 @@ def play_archived_quiz(quiz_id):
     quiz_key = os.path.basename(quiz_path)
 
     if request.method == "POST":
-        with open(quiz_path, encoding="utf-8") as f:
+        qp = request.form.get("quiz_json_path", "")
+        if not qp or not os.path.isfile(qp):
+            return redirect(url_for("main.play_archived_quiz", quiz_id=quiz_id))
+
+        quiz_key = os.path.basename(qp)
+
+        with open(qp, encoding="utf-8") as f:
             data = json.load(f)
         for pl in data["players"]:
             normalise_usc(pl, conf_map)
@@ -345,7 +351,7 @@ def play_archived_quiz(quiz_id):
             correct_answers=correct_answers,
             score=round(score, 2),
             max_points=round(max_points, 2),
-            quiz_json_path=quiz_path,
+            quiz_json_path=qp,
             quiz_id=quiz_key,
             percentile=percentile,
             streak=streak,
@@ -558,7 +564,7 @@ def show_quiz():
             score           = round(score, 2),
             max_points      = round(max_points, 2),
             quiz_json_path  = qp,
-            quiz_id        = os.path.basename(qp),
+            quiz_id        = quiz_key,
             percentile     = percentile,
             streak          = streak,
         share_message   = share_message,
