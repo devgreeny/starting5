@@ -4,7 +4,6 @@ from flask_login import current_user, login_required
 from datetime import datetime
 from app.models import db, GuessLog, ScoreLog
 from sqlalchemy import func
-from urllib.parse import unquote
 
 bp = Blueprint("main", __name__)
 
@@ -664,6 +663,7 @@ def show_quiz():
     )
 
 
+
 @bp.route("/player_accuracy/<player_name>")
 def player_accuracy(player_name):
     """Return accuracy for a single player within a specific quiz."""
@@ -683,6 +683,7 @@ def player_accuracy(player_name):
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
     return make_response(resp)
+
 
 
 @bp.route("/record_share", methods=["POST"])
