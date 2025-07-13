@@ -105,17 +105,13 @@
             <span class="stat-value">{{ player.game_stats.reb|int }}</span>
             <div class="bar"><div class="bar-fill" style="width: {{ (player.game_contribution_pct.rebounds_pct * 100)|round(1) }}%;"></div></div>
           </div>
-          <div class="result-info" data-player-name="{{ player.name }}">
+          <div class="result-info">
             {% if r.startswith('✅') %}
               <span class="correct">Correct</span>
             {% else %}
               <span class="wrong">Incorrect</span>
             {% endif %}
             <span class="answer">{{ correct_answers[idx] }}</span>
-            <div class="accuracy-bar-row">
-              <span class="accuracy-value">Loading...</span>
-              <div class="bar"><div class="bar-fill accuracy-fill" style="width:0%"></div></div>
-            </div>
           </div>
         </div>
         {% endfor %}

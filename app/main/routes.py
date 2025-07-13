@@ -4,7 +4,6 @@ from flask_login import current_user, login_required
 from datetime import datetime
 from app.models import db, GuessLog, ScoreLog
 from sqlalchemy import func
-from urllib.parse import unquote
 
 bp = Blueprint("main", __name__)
 
@@ -662,6 +661,7 @@ def show_quiz():
         archive_quizzes = get_archive_list(),
 
     )
+
 
 
 @bp.route("/player_accuracy/<player_name>")
