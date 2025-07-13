@@ -182,6 +182,7 @@
     const shareMessage = {{ share_message|tojson }};
     const isAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
     const loginUrl = "{{ url_for('auth.login') }}";
+    const quizId = {{ quiz_id|tojson }};
   </script>
   <script src="{{ url_for('static', filename='results.js') }}"></script>
 </body>

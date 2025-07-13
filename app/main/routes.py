@@ -172,12 +172,8 @@ def performance_text(score, max_points):
         return "\U0001F9CA Cold start – better luck tomorrow!"
 
 def get_leaderboard(quiz_id):
-    """Return all results for today, labeling guests sequentially."""
+    """Return all results for a quiz, labeling guests sequentially."""
     from app.models import User  # local import to avoid circular deps
-
-
-    start, end = today_est_bounds()
-    today = datetime.utcnow().date()
 
     q = (
         db.session.query(
@@ -188,13 +184,7 @@ def get_leaderboard(quiz_id):
             ScoreLog.user_id,
         )
         .outerjoin(User, User.id == ScoreLog.user_id)
-        .filter(
-            ScoreLog.quiz_id == quiz_id,
-            ScoreLog.timestamp >= start,
-            ScoreLog.timestamp < end,
-        )
-
-        .filter(ScoreLog.quiz_id == quiz_id, func.date(ScoreLog.timestamp) == today)
+        .filter(ScoreLog.quiz_id == quiz_id)
         .order_by(ScoreLog.score.desc(), ScoreLog.time_taken.asc())
         .all()
     )
@@ -315,6 +305,7 @@ def play_archived_quiz(quiz_id):
                     guess=guess,
                     is_correct=is_correct,
                     used_hint=used_hint,
+                    quiz_id=quiz_key,
                 )
                 db.session.add(guess_log)
 
@@ -437,15 +428,11 @@ def show_quiz():
         time_taken = request.form.get("time_taken", type=int)
 
         existing_score = None
-        start, end = today_est_bounds()
-        today = datetime.utcnow().date()
         if current_user.is_authenticated:
             existing_score = (
                 ScoreLog.query.filter(
                     ScoreLog.user_id == current_user.id,
                     ScoreLog.quiz_id == quiz_key,
-                    ScoreLog.timestamp >= start,
-                    ScoreLog.timestamp < end,
                 )
                 .first()
             )
@@ -457,9 +444,6 @@ def show_quiz():
                     ScoreLog.query.filter(
                         ScoreLog.id == sid,
                         ScoreLog.quiz_id == quiz_key,
-                        ScoreLog.timestamp >= start,
-                        ScoreLog.timestamp < end,
-                        func.date(ScoreLog.timestamp) == today,
                     )
                     .first()
                 )
@@ -509,7 +493,8 @@ def show_quiz():
                     school=team_name,
                     guess=guess,
                     is_correct=is_correct,
-                    used_hint=used_hint
+                    used_hint=used_hint,
+                    quiz_id=quiz_key,
                 )
                 db.session.add(guess_log)
 
@@ -683,9 +668,16 @@ def show_quiz():
 @bp.route("/player_accuracy/<player_name>")
 def player_accuracy(player_name):
     safe_name = unquote(player_name)
+    quiz_id = request.args.get("quiz_id")
 
-    total = db.session.query(func.count(GuessLog.id)).filter_by(player_name=safe_name).scalar()
-    correct = db.session.query(func.count(GuessLog.id)).filter_by(player_name=safe_name, is_correct=True).scalar()
+    total_query = GuessLog.query.filter_by(player_name=safe_name)
+    correct_query = GuessLog.query.filter_by(player_name=safe_name, is_correct=True)
+    if quiz_id:
+        total_query = total_query.filter_by(quiz_id=quiz_id)
+        correct_query = correct_query.filter_by(quiz_id=quiz_id)
+
+    total = total_query.count()
+    correct = correct_query.count()
 
     percent = round(100 * correct / total, 1) if total else 0
 

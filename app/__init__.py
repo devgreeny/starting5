@@ -55,6 +55,11 @@ def create_app(config_class: type = Config) -> Flask:
             db.session.execute(text("ALTER TABLE score_log ADD COLUMN time_taken INTEGER"))
             db.session.commit()
 
+        cols = [c["name"] for c in insp.get_columns("guess_log")]
+        if "quiz_id" not in cols:
+            db.session.execute(text("ALTER TABLE guess_log ADD COLUMN quiz_id VARCHAR(120)"))
+            db.session.commit()
+
     @login.user_loader
     def load_user(user_id: str):
         """Return user object from session-stored user_id."""
