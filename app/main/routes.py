@@ -1,8 +1,7 @@
 import os, json, random
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, make_response, session
-from flask_login import current_user
-from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+from flask_login import current_user, login_required
+from datetime import datetime
 from app.models import db, GuessLog, ScoreLog
 from sqlalchemy import func
 from urllib.parse import unquote
@@ -15,18 +14,6 @@ BONUS_DIR    = os.path.join(PROJECT_ROOT, "app", "static", "bonus_quiz")
 ARCHIVE_DIR  = os.path.join(PROJECT_ROOT, "app", "static", "archive_quizzes")
 PRELOADED_DIR = os.path.join(PROJECT_ROOT, "app", "static", "preloaded_quizzes")
 CBB_CSV      = os.path.join(PROJECT_ROOT, "app", "static", "json", "cbb25.csv")
-
-# Eastern timezone for daily resets
-EASTERN = ZoneInfo("America/New_York")
-
-def today_est_bounds():
-    """Return today's start and end timestamps in UTC for Eastern time."""
-    now_est = datetime.now(EASTERN)
-    start_est = now_est.replace(hour=0, minute=0, second=0, microsecond=0)
-    start_utc = start_est.astimezone(timezone.utc).replace(tzinfo=None)
-    end_utc = (start_est + timedelta(days=1)).astimezone(timezone.utc).replace(tzinfo=None)
-    return start_utc, end_utc
-
 
 def load_confs():
     """Return a mapping of college names to conferences and a sorted list of names.
@@ -252,7 +239,13 @@ def play_archived_quiz(quiz_id):
     quiz_key = os.path.basename(quiz_path)
 
     if request.method == "POST":
-        with open(quiz_path, encoding="utf-8") as f:
+        qp = request.form.get("quiz_json_path", "")
+        if not qp or not os.path.isfile(qp):
+            return redirect(url_for("main.play_archived_quiz", quiz_id=quiz_id))
+
+        quiz_key = os.path.basename(qp)
+
+        with open(qp, encoding="utf-8") as f:
             data = json.load(f)
         for pl in data["players"]:
             normalise_usc(pl, conf_map)
@@ -358,7 +351,7 @@ def play_archived_quiz(quiz_id):
             correct_answers=correct_answers,
             score=round(score, 2),
             max_points=round(max_points, 2),
-            quiz_json_path=quiz_path,
+            quiz_json_path=qp,
             quiz_id=quiz_key,
             percentile=percentile,
             streak=streak,
@@ -571,7 +564,7 @@ def show_quiz():
             score           = round(score, 2),
             max_points      = round(max_points, 2),
             quiz_json_path  = qp,
-            quiz_id        = os.path.basename(qp),
+            quiz_id        = quiz_key,
             percentile     = percentile,
             streak          = streak,
         share_message   = share_message,
@@ -669,24 +662,20 @@ def show_quiz():
 def player_accuracy(player_name):
     safe_name = unquote(player_name)
     quiz_id = request.args.get("quiz_id")
+    if not quiz_id:
+        return jsonify({"player": safe_name, "accuracy": 0}), 400
 
-    total_query = GuessLog.query.filter_by(player_name=safe_name)
-    correct_query = GuessLog.query.filter_by(player_name=safe_name, is_correct=True)
-    if quiz_id:
-        total_query = total_query.filter_by(quiz_id=quiz_id)
-        correct_query = correct_query.filter_by(quiz_id=quiz_id)
-
-    total = total_query.count()
-    correct = correct_query.count()
+    total = GuessLog.query.filter_by(player_name=safe_name, quiz_id=quiz_id).count()
+    correct = GuessLog.query.filter_by(
+        player_name=safe_name, quiz_id=quiz_id, is_correct=True
+    ).count()
 
     percent = round(100 * correct / total, 1) if total else 0
-
-    response = make_response(jsonify({"player": safe_name, "accuracy": percent}))
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-
-    return response
+    resp = jsonify({"player": safe_name, "accuracy": percent})
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return make_response(resp)
 
 
 @bp.route("/record_share", methods=["POST"])
