@@ -57,12 +57,23 @@ $(function () {
       });
     });
 
-    $('#open-archive').on('click', function (e) {
+    $('#view-past-quizzes').on('click', function (e) {
       e.preventDefault();
       if (!isAuthenticated) {
         window.location.href = loginUrl;
         return;
       }
+
+      const $list = $('#archive-list').empty();
+      archiveQuizzes.forEach((q) => {
+        $('<li>')
+          .append(
+            $('<a>')
+              .attr('href', '/archive/' + encodeURIComponent(q.id))
+              .text(q.label)
+          )
+          .appendTo($list);
+      });
 
       $('#archive-modal').fadeIn();
     });
