@@ -724,6 +724,16 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.close-btn {
+  display: block;
+  margin-bottom: 0.75rem;
+  background: none;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
 .past-quiz-line {
   margin-top: 0.5rem;
   font-size: 0.6rem;
