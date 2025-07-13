@@ -49,8 +49,7 @@
   
   .correct,
   .wrong,
-  .answer,
-  .accuracy-bar-row {
+  .answer {
     display: block;
     line-height: 1.8;
     margin-top: 0.6rem;

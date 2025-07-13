@@ -178,12 +178,6 @@
                 <span class="wrong">Incorrect</span>
               {% endif %}
               <span class="answer">{{ correct_answers[idx] }}</span>
-              <div class="accuracy-bar-row" data-player-name="{{ player.name }}">
-                <span class="accuracy-value">Loading...</span>
-                <div class="bar">
-                  <div class="bar-fill accuracy-fill" style="width: 0%;"></div>
-                </div>
-              </div>
             </div>
           </div>
           {% endfor %}
@@ -344,13 +338,6 @@
                 {% endif %}
                   <span class="answer">{{ correct_answers[idx] }}</span>
 
-                <!-- Accuracy bar -->
-                <div class="accuracy-bar-row" data-player-name="{{ player.name }}">
-                  <span class="accuracy-value">Loading...</span>
-                  <div class="bar">
-                    <div class="bar-fill accuracy-fill" style="width: 0%;"></div>
-                  </div>
-                </div>
               </p>
             {% endif %}
           </div>
@@ -470,13 +457,6 @@
                 {% endif %}
                   <span class="answer">{{ correct_answers[idx] }}</span>
 
-                <!-- Accuracy bar -->
-                <div class="accuracy-bar-row" data-player-name="{{ player.name }}">
-                  <span class="accuracy-value">Loading...</span>
-                  <div class="bar">
-                    <div class="bar-fill accuracy-fill" style="width: 0%;"></div>
-                  </div>
-                </div>
               </p>
             {% endif %}
           </div>
@@ -644,34 +624,6 @@
   }
 
 
-  // ----- Accuracy fetcher for each player result -----
-  $("[data-player-name]").each(function () {
-    const el = $(this);
-    const playerName = el.data("player-name");
-
-    fetch('/player_accuracy/' + encodeURIComponent(playerName) + '?quiz_id=' + encodeURIComponent(quizId))
-      .then((res) => res.json())
-      .then((data) => {
-        const percent = data.accuracy || 0;
-
-        const bar = el.find(".accuracy-fill");
-        const text = el.find(".accuracy-value");
-
-        text.text(`Of other users, ${percent}% guessed ${playerName} correctly.`);
-        text.addClass("show");
-
-        bar.css("width", "0%"); // reset first
-        requestAnimationFrame(() => {
-          bar.css("width", `${percent}%`);
-        });
-      })
-      .catch(() => {
-        el.find(".accuracy-value")
-          .text("Accuracy unavailable")
-          .addClass("show");
-        el.find(".accuracy-fill").css("width", "0%");
-      });
-  });
 
   const msg = {{ share_message|tojson }};
   $('#share-btn').on('click', function () {
