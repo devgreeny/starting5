@@ -30,6 +30,7 @@ class GuessLog(db.Model):
     is_correct  = db.Column(db.Boolean, default=False)
     used_hint   = db.Column(db.Boolean, default=False)
     timestamp   = db.Column(db.DateTime, default=datetime.utcnow)
+    quiz_id     = db.Column(db.String(120), index=True)
 
     user = db.relationship("User", backref="guesses")
 

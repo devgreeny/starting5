@@ -2,7 +2,7 @@ $(function () {
     $("[data-player-name]").each(function () {
       const el = $(this);
       const playerName = el.data("player-name");
-      fetch(`/player_accuracy/${encodeURIComponent(playerName)}`)
+      fetch('/player_accuracy/' + encodeURIComponent(playerName) + '?quiz_id=' + encodeURIComponent(quizId))
         .then((res) => res.json())
         .then((data) => {
           const percent = data.accuracy || 0;
