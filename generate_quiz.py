@@ -136,10 +136,10 @@ def generate_quiz_from_season(season, save_dir, manual_avatars=False, avatar_map
             away_abbr = df[df["TEAM_ID"] == away_id]["TEAM_ABBREVIATION"].iloc[0]
 
             matchup_str = f"{home_abbr} vs {away_abbr}"
-            game_date = header.get("GAME_DATE", None)
-            if isinstance(game_date, pd.Timestamp):
-                game_date = game_date.strftime("%Y-%m-%d")
-            else:
+            game_date = header.get("GAME_DATE_EST") or header.get("GAME_DATE")
+            try:
+                game_date = pd.to_datetime(game_date).date().strftime("%Y-%m-%d")
+            except Exception:
                 game_date = str(game_date)
 
             team_lineups = []
@@ -246,7 +246,8 @@ def generate_quiz_from_season(season, save_dir, manual_avatars=False, avatar_map
 
             if team_lineups:
                 selected = random.choice(team_lineups)
-                out_path = Path(save_dir) / today_filename()
+                fname = f"{selected['season']}_{selected['game_id']}_{selected['team_abbr']}.json"
+                out_path = Path(save_dir) / fname
                 with out_path.open("w", encoding="utf-8") as f:
                     json.dump(selected, f, indent=2, ensure_ascii=False)
                 print(f"Saved: {out_path}")
